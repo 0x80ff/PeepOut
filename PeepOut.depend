@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1399311131 source:d:\c++\github\idn\peepout\main.c
+	<stdio.h>
+	<time.h>
+	<stdlib.h>
+	<stdbool.h>
+	<stdint.h>
+	<windows.h>
+
