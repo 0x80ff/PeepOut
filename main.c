@@ -23,6 +23,7 @@ int h_line;
 int v_pos;
 int v_pos1;
 int h_pos;
+int points = 0;
 
 typedef struct Player Player;
 typedef struct Teleport Teleport;
@@ -113,18 +114,22 @@ int main()
     case 2:
         t_enter.x = 10;
         t_enter.y = t_enter.h_pos;
+        sector  = 1;
         break;
     case 3:
         t_enter.x = 50;
         t_enter.y = t_enter.h_pos;
+        sector = 2;
         break;
     case 4:
         t_enter.x = 69;
         t_enter.y = t_enter.h_pos;
+        sector = 3;
         break;
     default:
         t_enter.x = 10;
         t_enter.y = t_enter.h_pos;
+        sector = 1;
         break;
     }
 
@@ -186,7 +191,7 @@ int main()
         //Horizontal movement(auto)
         if(m_map[p_player.x-1][p_player.y] != '|'){
             p_player.x--;
-            m_map[p_player.x][p_player.y] = '@';
+            m_map[p_player.x][p_player.y] = 167;
 
             if(m_map[p_player.x+4][p_player.y] == 'O'){
                 m_map[p_player.x+4][p_player.y] = 'O';
@@ -205,6 +210,24 @@ int main()
             p_player.old_x = p_player.x;
             p_player.old_y = p_player.y;
 
+            switch(sector){
+            case 1: points += 20;
+                break;
+            case 2: points += 5;
+                break;
+            case 3: points += 10;
+                break;
+            }
+
+            COORD cPos;
+            cPos.X = 25;
+            cPos.Y = 16;
+            SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cPos);
+            printf("Pts:[");
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+            printf("%d", points);
+            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+            printf("]");
              do{
                 t_enter.h_pos =  rand() % 10 + 1;
             }while(t_enter.h_pos%2 != 0);
@@ -214,14 +237,17 @@ int main()
                     case 2:
                         t_enter.x = 10;
                         t_enter.y = t_enter.h_pos;
+                        sector = 1;
                         break;
                     case 3:
                         t_enter.x = 50;
                         t_enter.y = t_enter.h_pos;
+                        sector = 2;
                         break;
                     case 4:
                         t_enter.x = 69;
                         t_enter.y = t_enter.h_pos;
+                        sector = 3;
                         break;
                     default:
                         t_enter.x = 10;
@@ -282,8 +308,8 @@ int main()
                     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cPos);
                     if(m_map[i][j] == 'O'){
                         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 9);
-                    }else if(m_map[i][j] == '@'){
-                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 13);
+                    }else if(m_map[i][j] == 167){
+                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
                     }
                     printf("%c", m_map[i][j]);
                     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
