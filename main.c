@@ -14,9 +14,11 @@
 unsigned char m_map[mapXsize][mapYsize];
 unsigned char map_buffer[mapXsize][mapYsize];
 DWORD WINAPI    GetTickCount(void);
-
+bool over = false;
 int i;
 int j;
+int nbPoints = 0;
+int nbCounter = 0;
 int sector;
 int v_line;
 int h_line;
@@ -163,7 +165,7 @@ int main()
     //Set exit position teleporter
     m_map[t_exit.x][t_exit.y] = 'O';
 
-    while(1){
+    while(!over){
         tl_start = GetTickCount();
 
         //Vertical movement
@@ -201,6 +203,10 @@ int main()
             m_map[p_player.x+4][p_player.y] = '-';
         }
 
+        //Wall in face:
+         if(m_map[p_player.x-1][p_player.y] == '|'){
+                over = true;
+         }
 
 
         //Wall in face, but should be here a 'O
@@ -212,13 +218,19 @@ int main()
 
             switch(sector){
             case 1: points += 20;
+                nbPoints = 20;
                 break;
             case 2: points += 5;
+                nbPoints = 5;
                 break;
             case 3: points += 10;
+                nbPoints = 10;
                 break;
             }
 
+
+            //POINTS
+            COORD ptsPos;
             COORD cPos;
             cPos.X = 25;
             cPos.Y = 16;
@@ -228,8 +240,9 @@ int main()
             printf("%d", points);
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
             printf("]");
-             do{
-                t_enter.h_pos =  rand() % 10 + 1;
+
+            do{
+            t_enter.h_pos =  rand() % 10 + 1;
             }while(t_enter.h_pos%2 != 0);
             t_enter.v_pos =  rand() % (5 - 2) + 2;
 
@@ -328,6 +341,10 @@ int main()
 
         MapBuffering(map_buffer, m_map);
     }
+
+    system("cls");
+    printf("Game over: You got %d pts", points);
+    getchar();
 
     return 0;
 }
