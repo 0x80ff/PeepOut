@@ -10,36 +10,31 @@
 
 //Written on the job in a few hours. To optimize and rearrange later.
 //Could fit easily in less than 150 lines of code.
-
+DWORD WINAPI    GetTickCount(void);
 unsigned char m_map[mapXsize][mapYsize];
 unsigned char map_buffer[mapXsize][mapYsize];
-DWORD WINAPI    GetTickCount(void);
-bool over = false;
-int i;
-int j;
-int nbPoints = 0;
-int nbCounter = 0;
-int sector;
-int v_line;
-int h_line;
-int v_pos;
-int v_pos1;
-int h_pos;
-int points = 0;
 
-typedef struct Player Player;
+bool    over        = false;
+int     points      = 0;
+int     nbPoints    = 0;
+int     sector;
+int     i;
+int     j;
+
+typedef struct Player   Player;
 typedef struct Teleport Teleport;
 
 struct Player
 {
     int x;
     int y;
-    boolean teleport;
+    bool teleport;
     int p_size;
     int a_state_size;
     int old_x;
     int old_y;
 };
+Player p_player;
 
 struct Teleport
 {
@@ -48,24 +43,15 @@ struct Teleport
     int sector;
     int v_pos;
     int h_pos;
-    int created;
 };
+Teleport t_enter;
+Teleport t_exit;
 
 unsigned int fps = ( 1000 / 8 );
 uint32_t      tl_start    = 0;
 uint32_t      tl_end      = 0;
 uint32_t      tl_elapsed  = 0;
 
-/*
-====================
-MapBuffering
-    -> Copy the map at the end of the loop for
-    mapUpdate optimization by changes comparison
-
-    @param      map_buff    reference on previous map
-    @param      map_        reference on actual map
-====================
-*/
 void MapBuffering(unsigned char map_buff[][mapYsize], unsigned char map_[][mapYsize]){
     int x, y;
     for(y = 0; y < mapYsize; y++)
@@ -77,18 +63,7 @@ void MapBuffering(unsigned char map_buff[][mapYsize], unsigned char map_[][mapYs
     }
 }
 
-int main()
-{
-    Player p_player;
-    Teleport t_enter;
-    Teleport t_exit;
-
-    p_player.teleport = false;
-    p_player.p_size = 4;
-    p_player.a_state_size = p_player.p_size;
-
-    srand(time(NULL));
-
+void MapCreation(){
     for(j = 0; j < mapYsize; j++){
         for(i = 0; i < mapXsize; i++){
             if (j == 0 || j == 12){
@@ -105,111 +80,140 @@ int main()
             }
         }
     }
+}
 
-    //FIRST POSITION
+void SetEnterTeleport(int *p_sector){
     do{
         t_enter.h_pos =  rand() % 10 + 1;
-    }while(t_enter.h_pos%2 != 0);
+    }while( (t_enter.h_pos%2) != 0 );
+
     t_enter.v_pos =  rand() % (5 - 2) + 2;
 
     switch(t_enter.v_pos){
-    case 2:
-        t_enter.x = 10;
-        t_enter.y = t_enter.h_pos;
-        sector  = 1;
+        case 2:
+            t_enter.x   = 10;
+            t_enter.y   = t_enter.h_pos;
+            *p_sector   = 1;
         break;
-    case 3:
-        t_enter.x = 50;
-        t_enter.y = t_enter.h_pos;
-        sector = 2;
+        case 3:
+            t_enter.x   = 50;
+            t_enter.y   = t_enter.h_pos;
+            *p_sector   = 2;
         break;
-    case 4:
-        t_enter.x = 69;
-        t_enter.y = t_enter.h_pos;
-        sector = 3;
+        case 4:
+            t_enter.x   = 69;
+            t_enter.y   = t_enter.h_pos;
+            *p_sector   = 3;
         break;
-    default:
-        t_enter.x = 10;
-        t_enter.y = t_enter.h_pos;
-        sector = 1;
+        default:
+            t_enter.x   = 10;
+            t_enter.y   = t_enter.h_pos;
+            *p_sector   = 1;
         break;
     }
-
-    //Set enter position teleporter
+    m_map[t_enter.x][t_enter.y] = 'O';
     p_player.x = t_enter.x;
     p_player.y = t_enter.y;
-    m_map[t_enter.x][t_enter.y] = 'O';
+}
 
-    //Exit teleport creation:
+void SetExitTeleport(){
     do{
-        t_exit.h_pos =  rand() % 10 + 1;
-    }while(t_exit.h_pos%2 != 0);
+        t_exit.h_pos = rand() % 10 + 1;
+    }while( (t_exit.h_pos%2) != 0 );
 
     t_exit.v_pos = t_enter.v_pos - 1;
 
     switch(t_exit.v_pos){
-    case 1:
-        t_exit.x = 0;
-        t_exit.y = t_exit.h_pos;
+        case 1:
+            t_exit.x = 0;
+            t_exit.y = t_exit.h_pos;
         break;
-    case 2:
-        t_exit.x = 10;
-        t_exit.y = t_exit.h_pos;
+        case 2:
+            t_exit.x = 10;
+            t_exit.y = t_exit.h_pos;
         break;
-    case 3:
-        t_exit.x = 50;
-        t_exit.y = t_exit.h_pos;
+        case 3:
+            t_exit.x = 50;
+            t_exit.y = t_exit.h_pos;
         break;
     }
+    //printf("%d;%d", t_exit.x, t_exit.y);
+     m_map[t_exit.x][t_exit.y] = 'O';
+}
 
-    //Set exit position teleporter
-    m_map[t_exit.x][t_exit.y] = 'O';
+void RefreshPlayerVerticalDisplay(){
+    m_map[p_player.x+3][p_player.y] = '-';
+    m_map[p_player.x+2][p_player.y] = '-';
+    m_map[p_player.x+1][p_player.y] = '-';
+    m_map[p_player.x][p_player.y]   = '-';
+}
 
+void HandleKeyboard(){
+    //Vertical movement:
+    if(GetAsyncKeyState(VK_DOWN)){
+        if(p_player.y < 10){
+            //Refresh player vertical position displaying:
+            RefreshPlayerVerticalDisplay();
+            p_player.y  += 2;
+        }
+    }
+    if(GetAsyncKeyState(VK_UP)){
+        if(p_player.y > 2){
+            RefreshPlayerVerticalDisplay(p_player);
+            p_player.y -= 2;
+        }
+    }
+    //Horizontal movement(auto):
+    if(m_map[p_player.x-1][p_player.y] != '|'){
+        p_player.x--;
+        m_map[p_player.x][p_player.y] = 167;
+
+        if(m_map[p_player.x+4][p_player.y] == 'O'){
+            m_map[p_player.x+4][p_player.y] = 'O';
+        }
+
+        if(m_map[p_player.x+4][p_player.y] != '|' && m_map[p_player.x+4][p_player.y] != 'O')
+        m_map[p_player.x+4][p_player.y] = '-';
+    }
+}
+
+void SetCursorPosition(int x, int y){
+    COORD pos;
+    pos.X = x;
+    pos.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
+}
+
+void SetConsoleTextColor(int color){
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+}
+
+int main()
+{
+    // Variables Initialization:
+    p_player.teleport       = false;
+    p_player.p_size         = 4;
+    p_player.a_state_size   = p_player.p_size;
+
+    srand(time(NULL));
+
+    MapCreation(m_map);
+    SetEnterTeleport(&sector);
+    SetExitTeleport();
+
+    // Game Loop:
     while(!over){
         tl_start = GetTickCount();
 
-        //Vertical movement
-        if(GetAsyncKeyState(VK_DOWN)){
-            if(p_player.y < 10){
-                m_map[p_player.x+3][p_player.y] = '-';
-                m_map[p_player.x+2][p_player.y] = '-';
-                m_map[p_player.x+1][p_player.y] = '-';
-                m_map[p_player.x][p_player.y] = '-';
-                p_player.y  += 2;
+        // Updates:
+        HandleKeyboard();
 
-            }
-        }
-        if(GetAsyncKeyState(VK_UP)){
-            if(p_player.y > 2){
-                m_map[p_player.x+3][p_player.y] = '-';
-                m_map[p_player.x+2][p_player.y] = '-';
-                m_map[p_player.x+1][p_player.y] = '-';
-                m_map[p_player.x][p_player.y] = '-';
-                p_player.y -= 2;
-            }
-        }
-        //+VITE
-
-        //Horizontal movement(auto)
-        if(m_map[p_player.x-1][p_player.y] != '|'){
-            p_player.x--;
-            m_map[p_player.x][p_player.y] = 167;
-
-            if(m_map[p_player.x+4][p_player.y] == 'O'){
-                m_map[p_player.x+4][p_player.y] = 'O';
-            }
-
-            if(m_map[p_player.x+4][p_player.y] != '|' && m_map[p_player.x+4][p_player.y] != 'O')
-            m_map[p_player.x+4][p_player.y] = '-';
-        }
-
-        //Wall in face:
+        //Wall in face?
          if(m_map[p_player.x-1][p_player.y] == '|'){
                 over = true;
          }
 
-
-        //Wall in face, but should be here a 'O
+        //Teleporter in face?
         if(m_map[p_player.x-1][p_player.y] == 'O'){
             p_player.teleport = true;
             m_map[t_enter.x][t_enter.y] = '|';
@@ -228,50 +232,15 @@ int main()
                 break;
             }
 
-
-            //POINTS
-            COORD ptsPos;
-            COORD cPos;
-            cPos.X = 25;
-            cPos.Y = 16;
-            SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cPos);
+            //Display points:
+            SetCursorPosition(25,16);
             printf("Pts:[");
-            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+            SetConsoleTextColor(2);
             printf("%d", points);
-            SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+            SetConsoleTextColor(7);
             printf("]");
 
-            do{
-            t_enter.h_pos =  rand() % 10 + 1;
-            }while(t_enter.h_pos%2 != 0);
-            t_enter.v_pos =  rand() % (5 - 2) + 2;
-
-                switch(t_enter.v_pos){
-                    case 2:
-                        t_enter.x = 10;
-                        t_enter.y = t_enter.h_pos;
-                        sector = 1;
-                        break;
-                    case 3:
-                        t_enter.x = 50;
-                        t_enter.y = t_enter.h_pos;
-                        sector = 2;
-                        break;
-                    case 4:
-                        t_enter.x = 69;
-                        t_enter.y = t_enter.h_pos;
-                        sector = 3;
-                        break;
-                    default:
-                        t_enter.x = 10;
-                        t_enter.y = t_enter.h_pos;
-                        break;
-                }
-
-                //Set enter position teleporter
-                p_player.x = t_enter.x;
-                p_player.y = t_enter.y;
-                m_map[t_enter.x][t_enter.y] = 'O';
+            SetEnterTeleport(&sector);
         }
 
         //Teleport?
@@ -284,30 +253,8 @@ int main()
                 p_player.teleport = false;
                 p_player.a_state_size = p_player.p_size;
                 m_map[t_exit.x][t_exit.y] = '|';
-                //Exit teleport creation:
-                do{
-                    t_exit.h_pos =  rand() % 10 + 1;
-                }while(t_exit.h_pos%2 != 0);
 
-                t_exit.v_pos = t_enter.v_pos - 1;
-
-                switch(t_exit.v_pos){
-                    case 1:
-                        t_exit.x = 0;
-                        t_exit.y = t_exit.h_pos;
-                        break;
-                    case 2:
-                        t_exit.x = 10;
-                        t_exit.y = t_exit.h_pos;
-                        break;
-                    case 3:
-                        t_exit.x = 50;
-                        t_exit.y = t_exit.h_pos;
-                        break;
-                }
-
-                //Set exit position teleporter
-                m_map[t_exit.x][t_exit.y] = 'O';
+                SetExitTeleport();
             }
         }
 
@@ -315,17 +262,14 @@ int main()
         for(j = 0; j < mapYsize; j++){
             for(i = 0; i < mapXsize; i++){
                 if(map_buffer[i][j] != m_map[i][j]){
-                    COORD cPos;
-                    cPos.X = i;
-                    cPos.Y = j;
-                    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cPos);
+                    SetCursorPosition(i, j);
                     if(m_map[i][j] == 'O'){
-                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 9);
+                        SetConsoleTextColor(9);
                     }else if(m_map[i][j] == 167){
-                        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 11);
+                        SetConsoleTextColor(11);
                     }
                     printf("%c", m_map[i][j]);
-                    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+                     SetConsoleTextColor(7);
                 }
             }
         }
@@ -343,8 +287,8 @@ int main()
     }
 
     system("cls");
-    printf("Game over: You got %d pts", points);
-    getchar();
+    printf("Game over: You got %d pts\n", points);
+    system("pause");
 
     return 0;
 }
