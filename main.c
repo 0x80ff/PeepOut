@@ -87,27 +87,24 @@ void SetEnterTeleport(int *p_sector){
         t_enter.h_pos =  rand() % 10 + 1;
     }while( (t_enter.h_pos%2) != 0 );
 
-    t_enter.v_pos =  rand() % (5 - 2) + 2;
+    t_enter.v_pos   = rand() % (5 - 2) + 2;
+    t_enter.y       = t_enter.h_pos;
 
     switch(t_enter.v_pos){
         case 2:
             t_enter.x   = 10;
-            t_enter.y   = t_enter.h_pos;
             *p_sector   = 1;
         break;
         case 3:
             t_enter.x   = 50;
-            t_enter.y   = t_enter.h_pos;
             *p_sector   = 2;
         break;
         case 4:
             t_enter.x   = 69;
-            t_enter.y   = t_enter.h_pos;
             *p_sector   = 3;
         break;
         default:
             t_enter.x   = 10;
-            t_enter.y   = t_enter.h_pos;
             *p_sector   = 1;
         break;
     }
@@ -121,39 +118,35 @@ void SetExitTeleport(){
         t_exit.h_pos = rand() % 10 + 1;
     }while( (t_exit.h_pos%2) != 0 );
 
-    t_exit.v_pos = t_enter.v_pos - 1;
+    t_exit.v_pos    = t_enter.v_pos - 1;
+    t_exit.y        = t_exit.h_pos;
 
     switch(t_exit.v_pos){
         case 1:
             t_exit.x = 0;
-            t_exit.y = t_exit.h_pos;
         break;
         case 2:
             t_exit.x = 10;
-            t_exit.y = t_exit.h_pos;
         break;
         case 3:
             t_exit.x = 50;
-            t_exit.y = t_exit.h_pos;
         break;
     }
-    //printf("%d;%d", t_exit.x, t_exit.y);
      m_map[t_exit.x][t_exit.y] = 'O';
 }
 
 void RefreshPlayerVerticalDisplay(){
-    m_map[p_player.x+3][p_player.y] = '-';
-    m_map[p_player.x+2][p_player.y] = '-';
-    m_map[p_player.x+1][p_player.y] = '-';
-    m_map[p_player.x][p_player.y]   = '-';
+    int n = p_player.p_size;
+    while( (p_player.x+n) >= p_player.x){
+        m_map[p_player.x+n][p_player.y] = '-';
+        n--;
+    }
 }
 
 void HandleKeyboard(){
-    //Vertical movement:
     if(GetAsyncKeyState(VK_DOWN)){
         if(p_player.y < 10){
-            //Refresh player vertical position displaying:
-            RefreshPlayerVerticalDisplay();
+            RefreshPlayerVerticalDisplay(); //Refresh player vertical position displaying
             p_player.y  += 2;
         }
     }
@@ -163,24 +156,21 @@ void HandleKeyboard(){
             p_player.y -= 2;
         }
     }
-    //Horizontal movement(auto):
-    if(m_map[p_player.x-1][p_player.y] != '|'){
+
+    if(m_map[p_player.x-1][p_player.y] != '|'){ //Horizontal movement(auto)
         p_player.x--;
         m_map[p_player.x][p_player.y] = 167;
 
-        if(m_map[p_player.x+4][p_player.y] == 'O'){
-            m_map[p_player.x+4][p_player.y] = 'O';
-        }
+        if(m_map[p_player.x + p_player.p_size][p_player.y] == 'O')
+           m_map[p_player.x + p_player.p_size][p_player.y]  = 'O';
 
-        if(m_map[p_player.x+4][p_player.y] != '|' && m_map[p_player.x+4][p_player.y] != 'O')
-        m_map[p_player.x+4][p_player.y] = '-';
+        if( ( m_map[p_player.x + p_player.p_size][p_player.y] != '|') && (m_map[p_player.x+p_player.p_size][p_player.y] != 'O') )
+              m_map[p_player.x + p_player.p_size][p_player.y]  = '-';
     }
 }
 
 void SetCursorPosition(int x, int y){
-    COORD pos;
-    pos.X = x;
-    pos.Y = y;
+    COORD pos = { x, y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }
 
@@ -209,26 +199,22 @@ int main()
         HandleKeyboard();
 
         //Wall in face?
-         if(m_map[p_player.x-1][p_player.y] == '|'){
-                over = true;
-         }
+         if(m_map[p_player.x-1][p_player.y] == '|')
+            over = true;
 
         //Teleporter in face?
         if(m_map[p_player.x-1][p_player.y] == 'O'){
-            p_player.teleport = true;
             m_map[t_enter.x][t_enter.y] = '|';
-            p_player.old_x = p_player.x;
-            p_player.old_y = p_player.y;
+            p_player.teleport           = true;
+            p_player.old_x              = p_player.x;
+            p_player.old_y              = p_player.y;
 
             switch(sector){
             case 1: points += 20;
-                nbPoints = 20;
                 break;
             case 2: points += 5;
-                nbPoints = 5;
                 break;
             case 3: points += 10;
-                nbPoints = 10;
                 break;
             }
 
@@ -250,9 +236,9 @@ int main()
                 p_player.a_state_size--;
             }
             if(p_player.a_state_size == 0){
-                p_player.teleport = false;
-                p_player.a_state_size = p_player.p_size;
-                m_map[t_exit.x][t_exit.y] = '|';
+                p_player.teleport           = false;
+                p_player.a_state_size       = p_player.p_size;
+                m_map[t_exit.x][t_exit.y]   = '|';
 
                 SetExitTeleport();
             }
@@ -269,16 +255,14 @@ int main()
                         SetConsoleTextColor(11);
                     }
                     printf("%c", m_map[i][j]);
-                     SetConsoleTextColor(7);
+                    SetConsoleTextColor(7);
                 }
             }
         }
 
-
         //FPS Timer:
         tl_end      = GetTickCount();
         tl_elapsed  = ( tl_end - tl_start );
-
         //If we need we stop a moment the Fps:
         if(tl_elapsed < fps)
             Sleep(fps - tl_elapsed);
